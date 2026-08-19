@@ -67,7 +67,7 @@ npx claude-devops-architect doctor    # or: node bin/cli.js doctor
   ✓ settings.json valid — 155 allow rules
   ✓ safety hooks wired
   ✓ no mutating command allowlisted
-  ✓ hook regression suite: 42/42 passed
+  ✓ hook regression suite: 64/64 passed
 
   All checks passed. The agent is installed and its guardrails are live.
 ```
@@ -78,11 +78,11 @@ This is the part that isn't just markdown.
 
 **Blocked outright** — the hook denies these before execution:
 
-`terraform destroy` · `terraform state rm/mv` · `kubectl delete` · `kubectl drain` · `docker system prune` · `docker volume rm` · `aws <service> delete-*` · `aws s3 rm/rb` · `rm -rf` on a root or home path
+`terraform destroy` · `terraform state rm/mv` · `kubectl delete` · `kubectl drain` · `docker system prune` · `docker volume rm` · `aws delete-*` · `terminate-*` · `purge-*` · `deregister-*` · `batch-delete-*` · `aws s3 rm/rb` · `kms schedule-key-deletion` · `rm -rf` on a root or home path
 
 **Forced to prompt** — allowed *with* your approval, but never silently:
 
-`terraform apply` · `kubectl apply/patch/scale/rollout` · `helm install/upgrade` · IAM changes · security-group changes · `git push --force` · secret rotation
+`terraform apply` · `kubectl apply/patch/scale/rollout` · `helm install/upgrade` · IAM changes · security-group changes · `ecs update-service` · AWS `stop-*` / `reboot-*` / `modify-*` / `detach-*` · `git push --force` · secret rotation
 
 **Also blocked:** any file write containing a credential-shaped literal — real AWS keys, GitHub PATs, private keys, hardcoded passwords.
 
@@ -103,7 +103,7 @@ CLAUDE.md              orchestration — routes requests to the right layer
 ├── rules/             security · production safety · architecture principles
 ├── templates/         architecture · deployment plan · CI/CD · readiness checklist
 ├── mcp/               MCP integration policy (read-only by default, nothing enabled)
-├── hooks/             the safety hooks + their 42-case regression suite
+├── hooks/             the safety hooks + their 64-case regression suite
 └── settings.json      155 read-only command allowlist, zero mutating commands
 decisions/             ADR log so approved decisions survive the session
 ```
@@ -155,7 +155,7 @@ Issues and PRs welcome — especially reports from running it against real proje
 Run the guardrail suite before submitting:
 
 ```bash
-python .claude/hooks/test_hooks.py    # 42 cases
+python .claude/hooks/test_hooks.py    # 64 cases
 node bin/cli.js doctor --self
 ```
 

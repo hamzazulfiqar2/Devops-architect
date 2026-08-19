@@ -36,6 +36,16 @@ COMMAND_CASES = [
     (DENY, 'aws s3 rm "s3://my-bucket/path"',                       "aws s3 rm, quoted arg"),
     (DENY, "rm -rf /",                                              "rm -rf root"),
 
+    # AWS uses several verbs for destruction, not just delete-.
+    (DENY, "aws ec2 terminate-instances --instance-ids i-0abc123",  "EC2 terminate-instances"),
+    (DENY, "aws ecr batch-delete-image --repository-name app",      "ECR batch-delete-image"),
+    (DENY, "aws ec2 deregister-image --image-id ami-0abc123",       "deregister AMI"),
+    (DENY, "aws sqs purge-queue --queue-url https://q",             "SQS purge-queue"),
+    (DENY, "aws cloudformation delete-stack --stack-name prod",     "CFN delete-stack"),
+    (DENY, "aws kms schedule-key-deletion --key-id abc-123",        "KMS key deletion"),
+    (DENY, "aws kms disable-key --key-id abc-123",                  "KMS disable-key"),
+    (DENY, "aws elbv2 delete-load-balancer --load-balancer-arn a",  "delete load balancer"),
+
     # ---- must ASK: allowed with explicit approval, never silent ---------
     (ASK,  "terraform apply tfplan",                                "terraform apply"),
     (ASK,  "kubectl apply -f k8s/",                                 "kubectl apply"),
@@ -45,6 +55,14 @@ COMMAND_CASES = [
     (ASK,  "aws ec2 authorize-security-group-ingress --group-id g", "security group change"),
     (ASK,  "git push --force origin main",                          "force push"),
     (ASK,  "git reset --hard HEAD~1",                               "reset --hard"),
+
+    # Disruptive but recoverable — downtime or forced replacement.
+    (ASK,  "aws ec2 stop-instances --instance-ids i-0abc123",       "EC2 stop-instances"),
+    (ASK,  "aws ec2 reboot-instances --instance-ids i-0abc123",     "EC2 reboot-instances"),
+    (ASK,  "aws rds modify-db-instance --db-instance-identifier x", "RDS modify (may replace)"),
+    (ASK,  "aws rds stop-db-instance --db-instance-identifier x",   "RDS stop"),
+    (ASK,  "aws ec2 detach-volume --volume-id vol-0abc123",         "detach EBS volume"),
+    (ASK,  "aws ec2 release-address --allocation-id eipalloc-1",    "release Elastic IP"),
 
     # ---- must PASS: read-only, or the words appear only as TEXT ---------
     (PASS, 'git commit -m "docs: never run terraform destroy"',     "commit msg mentions it"),
@@ -59,6 +77,18 @@ COMMAND_CASES = [
     (PASS, "docker history myimage",                                "docker history"),
     (PASS, "aws ecr describe-images --repository-name app",         "aws describe"),
     (PASS, "aws sts get-caller-identity",                           "sts identity"),
+
+    # Regression guard: the broadened DENY/ASK patterns must NOT start
+    # swallowing read-only AWS calls. These all contain substrings that
+    # sit close to the destructive verbs.
+    (PASS, "aws logs describe-log-groups",                          "describe-log-groups"),
+    (PASS, "aws ecs describe-task-definition --task-definition t",  "describe-task-definition"),
+    (PASS, "aws ec2 describe-instances --filters Name=state",       "describe-instances"),
+    (PASS, "aws elbv2 describe-target-health --target-group-arn a", "describe-target-health"),
+    (PASS, "aws s3 ls s3://my-bucket/",                             "s3 ls"),
+    (PASS, "aws iam list-attached-role-policies --role-name r",     "iam list (read)"),
+    (PASS, "aws cloudwatch describe-alarms",                        "describe-alarms"),
+    (PASS, "aws ec2 describe-security-groups --group-ids sg-1",     "describe-security-groups"),
     (PASS, "rm -rf ./node_modules",                                 "rm -rf relative path"),
     (PASS, "git status",                                            "git status"),
 
