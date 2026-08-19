@@ -5,7 +5,7 @@
 Most agent configs are a pile of markdown that asks the model nicely. This one asks nicely *and* blocks `terraform destroy` at the harness level before it can run.
 
 ```bash
-npx github:hamzazulfiqar02/Devops-architect init
+npx github:hamzazulfiqar2/Devops-architect init
 ```
 
 ---
@@ -23,7 +23,7 @@ Ask it *"should I use Kubernetes?"* and it compares EC2 vs ECS vs EKS vs Lambda 
 **From GitHub** — no npm publish needed:
 
 ```bash
-npx github:hamzazulfiqar02/Devops-architect init
+npx github:hamzazulfiqar2/Devops-architect init
 ```
 
 **From npm:**

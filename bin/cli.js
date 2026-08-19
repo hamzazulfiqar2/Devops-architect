@@ -296,7 +296,7 @@ function help() {
     Applies, IAM changes and security-group changes are forced to prompt.
     Writes containing secret-shaped literals are blocked.
 
-  ${dim('https://github.com/hamzazulfiqar02/Devops-architect')}
+  ${dim('https://github.com/hamzazulfiqar2/Devops-architect')}
 `);
 }
 
