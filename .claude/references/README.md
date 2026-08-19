@@ -72,6 +72,11 @@ references/
 │   ├── runtime-and-compose.md       volumes, networks, ports, healthchecks, Compose
 │   └── security-and-production.md   non-root, scanning, secrets, production checklist
 │
+├── cicd/
+│   ├── README.md                    index + the workflow/job/step model
+│   └── github-actions.md            syntax, contexts, expressions, matrix, caching,
+│                                    artifacts, service containers, runners, limits
+│
 └── terraform/
     ├── README.md                    index + the core mental model
     ├── language.md                  providers, resources, data sources, variables, outputs, locals
