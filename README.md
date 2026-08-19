@@ -5,7 +5,8 @@
 Most agent configs are a pile of markdown that asks the model nicely. This one asks nicely *and* blocks `terraform destroy` at the harness level before it can run.
 
 ```bash
-npx github:hamzazulfiqar2/Devops-architect init
+git clone https://github.com/hamzazulfiqar2/Devops-architect.git
+node Devops-architect/bin/cli.js init ./my-project
 ```
 
 ---
@@ -20,33 +21,43 @@ Ask it *"should I use Kubernetes?"* and it compares EC2 vs ECS vs EKS vs Lambda 
 
 ## Install
 
-**From GitHub** — no npm publish needed:
+**Clone and run** — works everywhere, no npm quirks:
 
 ```bash
+git clone https://github.com/hamzazulfiqar2/Devops-architect.git
+node Devops-architect/bin/cli.js init ./my-project
+```
+
+**Or via npx from GitHub:**
+
+```bash
+# npm 11 and earlier
 npx github:hamzazulfiqar2/Devops-architect init
+
+# npm 12+ disabled git fetches by default — add the flag
+npx --allow-git=all github:hamzazulfiqar2/Devops-architect init
 ```
 
-**From npm:**
+> **Note:** npm 12 ships with `allow-git = "none"` as a *default*, so `npx github:…`
+> fails with `EALLOWGIT` unless you pass `--allow-git=all`. Not a bug in this package —
+> it affects every git-installed npm package. Check yours with `npm --version`.
+
+**Useful flags:**
 
 ```bash
-npx claude-devops-architect init
-```
-
-**Into a specific directory, or preview first:**
-
-```bash
-npx claude-devops-architect init ./my-project
-npx claude-devops-architect init --dry-run
+init ./my-project     # target a specific directory
+init --dry-run        # preview, write nothing
+init --force          # overwrite existing files
 ```
 
 Then open the project in Claude Code and ask it to `analyze this project`.
 
-Already have a `CLAUDE.md`? It won't be overwritten — you'll get `CLAUDE.devops-architect.md` to merge by hand.
+Already have a `CLAUDE.md`? It won't be overwritten — you'll get `CLAUDE.devops-architect.md` to merge by hand. Re-running `init` is safe: it skips anything that already exists.
 
 ## Verify it works
 
 ```bash
-npx claude-devops-architect doctor
+npx claude-devops-architect doctor    # or: node bin/cli.js doctor
 ```
 
 ```
