@@ -99,3 +99,6 @@ temp/
 scratch/
 *.bak
 *.orig
+
+# npm package artifacts
+*.tgz

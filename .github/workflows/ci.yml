@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  guardrails:
+    name: Safety hooks (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      # The hooks are the security boundary. If this suite fails, the
+      # destructive-command blocking is not doing what it claims.
+      - name: Hook regression suite (42 cases)
+        run: python .claude/hooks/test_hooks.py
+
+  package:
+    name: Package (node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['18', '20', '22']
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: CLI smoke test
+        run: |
+          node bin/cli.js --version
+          node bin/cli.js --help
+
+      - name: Self check
+        run: node bin/cli.js doctor --self
+
+      - name: Install into a clean project and verify
+        run: |
+          mkdir -p /tmp/consumer
+          node bin/cli.js init /tmp/consumer
+          cd /tmp/consumer
+          node "$GITHUB_WORKSPACE/bin/cli.js" doctor
+
+      - name: Verify tarball contents
+        run: |
+          npm pack --dry-run
+          npm pack --pack-destination /tmp
+          test -f /tmp/claude-devops-architect-*.tgz

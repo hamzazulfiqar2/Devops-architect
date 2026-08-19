@@ -1,0 +1,49 @@
+{
+  "name": "claude-devops-architect",
+  "version": "0.1.0",
+  "description": "A senior DevOps / AWS architect and mentor for Claude Code — skills, workflows, guardrails and safety hooks that stop destructive infrastructure commands before they run.",
+  "keywords": [
+    "claude",
+    "claude-code",
+    "devops",
+    "aws",
+    "terraform",
+    "kubernetes",
+    "docker",
+    "infrastructure",
+    "architecture",
+    "sre",
+    "agent",
+    "ai-agent"
+  ],
+  "homepage": "https://github.com/hamzazulfiqar02/Devops-architect#readme",
+  "bugs": {
+    "url": "https://github.com/hamzazulfiqar02/Devops-architect/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hamzazulfiqar02/Devops-architect.git"
+  },
+  "license": "MIT",
+  "author": "hamzazulfiqar02",
+  "type": "commonjs",
+  "bin": {
+    "devops-architect": "bin/cli.js"
+  },
+  "files": [
+    "bin/",
+    ".claude/",
+    "decisions/",
+    "CLAUDE.md",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node bin/cli.js doctor --self",
+    "prepack": "node bin/cli.js doctor --self"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {}
+}
