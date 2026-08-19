@@ -1,7 +1,7 @@
 {
   "name": "claude-devops-architect",
   "version": "0.1.0",
-  "description": "A senior DevOps / AWS architect and mentor for Claude Code — skills, workflows, guardrails and safety hooks that stop destructive infrastructure commands before they run.",
+  "description": "A senior DevOps / AWS architect and mentor for Claude Code \u2014 skills, workflows, guardrails and safety hooks that stop destructive infrastructure commands before they run.",
   "keywords": [
     "claude",
     "claude-code",
@@ -16,16 +16,16 @@
     "agent",
     "ai-agent"
   ],
-  "homepage": "https://github.com/hamzazulfiqar02/Devops-architect#readme",
+  "homepage": "https://github.com/hamzazulfiqar2/Devops-architect#readme",
   "bugs": {
-    "url": "https://github.com/hamzazulfiqar02/Devops-architect/issues"
+    "url": "https://github.com/hamzazulfiqar2/Devops-architect/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/hamzazulfiqar02/Devops-architect.git"
+    "url": "git+https://github.com/hamzazulfiqar2/Devops-architect.git"
   },
   "license": "MIT",
-  "author": "hamzazulfiqar02",
+  "author": "Hamza Zulfiqar (https://github.com/hamzazulfiqar2)",
   "type": "commonjs",
   "bin": {
     "devops-architect": "bin/cli.js"
