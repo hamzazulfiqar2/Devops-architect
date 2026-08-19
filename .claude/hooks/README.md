@@ -20,15 +20,36 @@ Two decision classes.
 
 **`deny`** — commands `production-rules.md` says *you* type yourself. Blocked outright:
 
-`terraform destroy` · `terraform state rm|mv` · `taint` · `force-unlock` · `import` ·
-`kubectl delete` · `kubectl drain|cordon` · `helm uninstall` · `docker system prune` ·
-`docker volume rm|prune` · `aws <svc> delete-*` · `aws s3 rm|rb` · `rm -rf` on a root/home path
+| Area | Blocked |
+|---|---|
+| Terraform | `destroy` · `state rm\|mv` · `taint` · `force-unlock` · `import` |
+| Kubernetes | `kubectl delete` · `drain` · `cordon` · `helm uninstall` |
+| Docker | `system prune` · `volume rm\|prune` |
+| **AWS** | `delete-*` · `terminate-*` · `purge-*` · `deregister-*` · `batch-delete-*` · `s3 rm\|rb` · `kms schedule-key-deletion\|disable-key` |
+| Filesystem | `rm -rf` on a root or home path |
+
+> **AWS uses several different verbs for "destroy".** `delete-` alone misses
+> `ec2 terminate-instances`, `ec2 deregister-image`, `sqs purge-queue`, and
+> `ecr batch-delete-image`. All are covered.
+>
+> `kms schedule-key-deletion` is called out separately because it is the most
+> irreversible command in AWS — every object encrypted with that key becomes
+> permanently unrecoverable once the waiting period ends.
 
 **`ask`** — may proceed **with explicit approval**, but must never be silent:
 
-`terraform apply` · `kubectl apply|patch|replace|scale|edit` · `kubectl rollout restart|undo` ·
-`helm install|upgrade` · `aws iam <mutating>` · security-group authorize/revoke ·
-`ecs update-service` · `git push --force` · `git reset --hard` · secret rotation/deletion
+| Area | Requires approval |
+|---|---|
+| Terraform | `apply` |
+| Kubernetes | `apply` · `patch` · `replace` · `scale` · `edit` · `rollout restart\|undo` · `helm install\|upgrade` |
+| **AWS — identity/network** | `iam <mutating>` · security-group `authorize\|revoke` |
+| **AWS — deployment** | `ecs update-service` · `eks update` · `lambda update-function-code` |
+| **AWS — disruptive** | `stop-*` · `reboot-*` · `modify-*` · `detach-*` · `release-*` · `disable-*` |
+| Secrets | `put-secret-value` · `rotate-secret` |
+| Git | `push --force` · `reset --hard` |
+
+`modify-*` is in the ask list because **many RDS attribute changes force resource
+replacement** — a "modify" can destroy the database.
 
 > **Why `ask` and not just the permission allowlist?** Allow rules can be skipped in relaxed
 > permission modes. A `PreToolUse` hook runs regardless. This is the layer that survives a

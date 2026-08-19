@@ -54,9 +54,16 @@ DENY = [
     (r"\bdocker\s+volume\s+(rm|prune)\b",
      "docker volume rm/prune — this is data deletion."),
 
-    (r"\baws\s+\S+\s+delete-",
-     "aws delete-* — production-rules.md rule 3: never delete a resource "
-     "without explicit approval. Run it yourself if you intend it."),
+    # AWS uses several verbs for "destroy". delete-* is only one of them:
+    # EC2 says terminate-, AMIs say deregister-, SQS says purge-, and ECR
+    # nests it as batch-delete-. All are irreversible resource destruction.
+    (r"\baws\s+\S+\s+(batch-)?(delete|terminate|purge|deregister)",
+     "aws delete/terminate/purge/deregister — production-rules.md rule 3: never "
+     "destroy a resource without explicit approval. Run it yourself if you intend it."),
+
+    (r"\baws\s+kms\s+(schedule-key-deletion|disable-key)\b",
+     "KMS key deletion/disable — every object encrypted with this key becomes "
+     "PERMANENTLY unrecoverable. There is no undo after the waiting period."),
 
     (r"\baws\s+s3\s+(rm|rb)\b",
      "aws s3 rm/rb — deletes objects or a bucket."),
@@ -93,6 +100,13 @@ ASK = [
 
     (r"\baws\s+(ecs\s+update-service|eks\s+update|lambda\s+update-function-code)\b",
      "deployment command — requires the Deploy Brief and explicit approval."),
+
+    # Disruptive but not destructive: causes downtime, can force replacement, or
+    # detaches storage. Allowed with approval — never silently.
+    (r"\baws\s+\S+\s+(stop|reboot|modify|detach|release|disable)-",
+     "aws stop/reboot/modify/detach/release — disruptive. Stopping or rebooting "
+     "causes downtime; many modify-* calls force resource replacement. Confirm the "
+     "target and check the blast radius first."),
 
     (r"\bgit\s+push\b.*(--force|-f\b)",
      "git push --force — rewrites remote history."),
