@@ -1,0 +1,101 @@
+# ============================================================
+# SECRETS — never commit. security.md rule 3 has no exception.
+# A committed secret is COMPROMISED: rotate it, do not just delete it.
+# ============================================================
+.env
+.env.*
+!.env.example
+*.local.json
+.mcp.local.json
+credentials
+*.pem
+*.key
+*.p12
+*.pfx
+*_rsa
+*_ed25519
+secrets.yaml
+secrets.yml
+
+# Cloud / cluster credentials
+.aws/
+kubeconfig
+*.kubeconfig
+.kube/
+gcloud-key.json
+azure-credentials.json
+
+# Claude Code local overrides (personal, machine-specific)
+.claude/settings.local.json
+
+# ============================================================
+# TERRAFORM — state holds attribute values in PLAINTEXT,
+# including database passwords. Never commit it.
+# ============================================================
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+.terraform/
+.terraform.tfstate.lock.info
+crash.log
+crash.*.log
+*.tfplan
+tfplan
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# tfvars may contain secrets — keep only the example
+*.tfvars
+*.tfvars.json
+!*.tfvars.example
+
+# NOTE: .terraform.lock.hcl is deliberately NOT ignored.
+# It is not a secret, and committing it is what makes provider
+# versions reproducible across machines and CI.
+
+# ============================================================
+# LANGUAGE / BUILD ARTIFACTS
+# ============================================================
+node_modules/
+dist/
+build/
+coverage/
+*.log
+npm-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+*.egg-info/
+
+vendor/
+target/
+
+# ============================================================
+# OS / EDITOR
+# ============================================================
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+!.vscode/extensions.json
+*.swp
+*.swo
+*~
+
+# ============================================================
+# SCRATCH
+# ============================================================
+tmp/
+temp/
+scratch/
+*.bak
+*.orig

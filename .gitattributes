@@ -1,0 +1,11 @@
+# Normalise line endings so the repo is identical on Windows, macOS, and Linux.
+* text=auto eol=lf
+
+# Shell scripts must keep LF or they break when executed
+*.sh text eol=lf
+*.py text eol=lf
+
+# Binary
+*.png binary
+*.jpg binary
+*.pdf binary
