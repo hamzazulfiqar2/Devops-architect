@@ -80,9 +80,10 @@ ASK = [
      "apply (production-rules.md rules 1 and 11). Confirm the plan was reviewed "
      "and you are applying the exact saved plan file."),
 
-    (r"\bkubectl\s+(apply|patch|replace|scale|edit)\b",
+    (r"\bkubectl\s+(apply|patch|replace|scale|edit|set|annotate|label|expose|autoscale)\b",
      "kubectl write operation — confirm the target context first "
-     "(kubectl config current-context) and that this is not production."),
+     "(kubectl config current-context) and that this is not production. "
+     "Note `kubectl set image` ships a new version: same consequence as apply."),
 
     (r"\bkubectl\s+rollout\s+(restart|undo)\b",
      "kubectl rollout restart/undo — changes running workloads."),
