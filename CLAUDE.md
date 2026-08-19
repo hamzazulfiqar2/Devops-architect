@@ -82,7 +82,7 @@ The primary decision this file exists to make.
 | New project · "what should we use?" · unknown architecture | `project-discovery.md` | `project-discovery` | — | as needed | Discovery report + gaps |
 | Design/change architecture · service selection · ECS vs EKS vs Lambda vs EC2 · networking · scalability | `architecture-design.md` | `aws-architecture`, `kubernetes`, `docker`, `security`, `cost-optimization` | **aws-architect**, +`kubernetes-engineer`/`security-reviewer` if warranted | `aws/`, `kubernetes/`, `docker/` | `templates/architecture.md` |
 | Deploy an app · create infrastructure · prepare environments | `deployment.md` | `docker`, `kubernetes`, `terraform`, `aws-architecture` | `terraform-engineer`, `kubernetes-engineer`, `aws-architect` | per technology | `templates/deployment-plan.md` |
-| Pipeline · GitHub Actions · build automation · image publishing · promotion | `ci-cd.md` | `cicd`, `docker`, `security` | — (usually inline) | `docker/`, `aws/iam-and-identity.md` | `templates/cicd.md` |
+| Pipeline · GitHub Actions · build automation · image publishing · promotion | `ci-cd.md` | `cicd`, `docker`, `security` | — (usually inline) | `cicd/`, `docker/`, `aws/iam-and-identity.md` | `templates/cicd.md` |
 | "Are we production ready?" · pre-launch review | `production-readiness.md` | `production-readiness`, `security`, `monitoring`, `cost-optimization` | **security-reviewer**, `aws-architect` | per domain | `templates/production-checklist.md` |
 | Production down · degraded · crashing · latency/errors up | `incident-response.md` | `troubleshooting`, `monitoring`, `kubernetes`, `aws-architecture` | `kubernetes-engineer`, `aws-architect`, `security-reviewer` | per symptom | Symptom→cause report + postmortem |
 | Terraform code, modules, state, plan review | *(within deployment)* | `terraform` | **terraform-engineer** | `terraform/` (structure: `project-structure.md`) | Code + plan brief → approval |
@@ -457,7 +457,7 @@ Actual files. Do not reference anything not listed here.
 
 **Rules** — `security` · `production-rules` · `architecture-principles`
 
-**References** — `aws/` (9 files) · `kubernetes/` (7) · `docker/` (6) · `terraform/` (8).
+**References** — `aws/` (9 files) · `kubernetes/` (7) · `docker/` (6) · `terraform/` (8) · `cicd/` (2).
 Each has a `README.md` index. Start at `.claude/references/README.md` when unsure.
 **Consult on demand — open only the file covering the decision, read only the relevant section.**
 
