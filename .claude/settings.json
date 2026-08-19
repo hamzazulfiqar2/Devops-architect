@@ -165,7 +165,13 @@
       "Bash(curl -v *)",
       "Bash(nc -zv *)"
     ],
-    "deny": [],
+    "deny": [
+      "Bash(env)",
+      "Bash(env *)",
+      "Bash(printenv)",
+      "Bash(printenv *)",
+      "Bash(export -p)"
+    ],
     "ask": []
   },
   "hooks": {

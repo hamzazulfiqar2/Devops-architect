@@ -86,6 +86,8 @@ This is the part that isn't just markdown.
 
 **Also blocked:** any file write containing a credential-shaped literal — real AWS keys, GitHub PATs, private keys, hardcoded passwords.
 
+**Denied outright:** `env`, `printenv`, `export -p`. These dump every environment variable into the transcript, credentials included — and `security.md` rule 2 has no exception process. A `deny` rule beats any allowlist, so this one can't be re-enabled by approving a prompt.
+
 Why a hook rather than a permission rule? **Permission allowlists can be skipped in relaxed permission modes. A `PreToolUse` hook always runs.** It's the layer that survives someone broadening their config later.
 
 The hooks fail *open* — a bug in them never breaks your session. They're a strong safety net, not an airtight boundary.
