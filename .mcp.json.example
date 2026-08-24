@@ -1,0 +1,76 @@
+{
+  "_README": [
+    "Copy to .mcp.json and fill the <placeholders>. Restart Claude Code afterwards.",
+    "",
+    "SAFE TO COMMIT once filled — but ONLY because every credential here is a",
+    "${ENV_VAR} reference or a profile NAME, never a value. A profile name and a",
+    "URL are not secrets; a token is. See .claude/mcp/configs/README.md.",
+    "",
+    "The restrictive flags below are the DEFAULT POSTURE on purpose, so anyone who",
+    "inherits this file starts read-only. Do not relax them to make something work.",
+    "",
+    "Enable ONE server at a time and run its test block from .claude/mcp/servers/",
+    "before adding the next. Delete the ones you do not use — an unused server is",
+    "an unused credential and an unused attack surface.",
+    "",
+    "Remember: the CLI is usually enough. See .claude/tools/README.md before",
+    "reaching for MCP at all."
+  ],
+
+  "mcpServers": {
+    "aws-docs": {
+      "_comment": "OFFICIAL (AWS Labs). NO CREDENTIALS NEEDED. Start here — zero risk, proves MCP works.",
+      "command": "uvx",
+      "args": ["awslabs.aws-documentation-mcp-server@<pinned-version>"]
+    },
+
+    "terraform": {
+      "_comment": "OFFICIAL (HashiCorp). Registry docs + module/provider lookup. NO CREDENTIALS for registry use. ENABLE_TF_OPERATIONS MUST stay false — true exposes an HCP/TFE apply path, which rules/production-rules.md rule 2 forbids.",
+      "command": "<path-to>/terraform-mcp-server",
+      "args": [],
+      "env": {
+        "ENABLE_TF_OPERATIONS": "false"
+      }
+    },
+
+    "aws": {
+      "_comment": "OFFICIAL (AWS Labs). READ-ONLY. The IAM role is the real boundary — READ_OPERATIONS_ONLY is the second layer, not the first. Use an SSO profile, never static keys.",
+      "command": "uvx",
+      "args": ["awslabs.aws-api-mcp-server@<pinned-version>"],
+      "env": {
+        "AWS_API_MCP_PROFILE_NAME": "<your-readonly-sso-profile>",
+        "AWS_REGION": "<your-region>",
+        "READ_OPERATIONS_ONLY": "true",
+        "REQUIRE_MUTATION_CONSENT": "true"
+      }
+    },
+
+    "github": {
+      "_comment": "OFFICIAL (GitHub), remote-hosted, /readonly toolsets. Prefer the gh CLI — it is already authenticated and needs no token. Only add this if you need structured tool access. Use a FINE-GRAINED, read-only PAT.",
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp/readonly",
+      "headers": {
+        "Authorization": "Bearer ${GITHUB_PERSONAL_ACCESS_TOKEN}"
+      }
+    },
+
+    "kubernetes": {
+      "_comment": "VENDOR-BACKED (Red Hat). --read-only is a SECOND layer. RBAC is the boundary: point KUBECONFIG at a context using a cluster-reader ServiceAccount, never admin. See CVE-2026-46519 in .claude/mcp/security.md for why the flag alone is not enough.",
+      "command": "kubernetes-mcp-server",
+      "args": ["--read-only"],
+      "env": {
+        "KUBECONFIG": "${KUBECONFIG_READONLY_PATH}"
+      }
+    },
+
+    "grafana": {
+      "_comment": "OFFICIAL (Grafana Labs). --disable-write plus a Viewer-role service account token. Covers Prometheus and Loki through one credential.",
+      "command": "mcp-grafana",
+      "args": ["--disable-write"],
+      "env": {
+        "GRAFANA_URL": "<https://your-grafana-instance>",
+        "GRAFANA_SERVICE_ACCOUNT_TOKEN": "${GRAFANA_SERVICE_ACCOUNT_TOKEN}"
+      }
+    }
+  }
+}

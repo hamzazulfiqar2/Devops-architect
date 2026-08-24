@@ -39,6 +39,7 @@ const PAYLOAD_DIRS = [
   '.claude/references',
   '.claude/rules',
   '.claude/mcp',
+  '.claude/tools',
   '.claude/hooks',
 ];
 
@@ -262,6 +263,108 @@ function doctor(argv) {
   process.exit(problems === 0 ? 0 : 1);
 }
 
+// Which CLI backs each system, how to check auth, and how to install it if missing.
+const TOOLCHAIN = [
+  { system: 'GitHub',     cmd: 'gh',        version: ['--version'],
+    auth: ['auth', 'status'], authOk: /Logged in to/i,
+    install: 'winget install GitHub.cli   |   brew install gh' },
+  { system: 'Git',        cmd: 'git',       version: ['--version'] },
+  { system: 'Docker',     cmd: 'docker',    version: ['--version'],
+    auth: ['info'], authOk: /Server Version/i,
+    install: 'https://docs.docker.com/get-docker/' },
+  { system: 'Kubernetes', cmd: 'kubectl',   version: ['version', '--client', '-o', 'yaml'],
+    auth: ['config', 'current-context'], authOk: /\S/,
+    install: 'winget install Kubernetes.kubectl   |   brew install kubectl' },
+  { system: 'Helm',       cmd: 'helm',      version: ['version', '--short'],
+    install: 'winget install Helm.Helm   |   brew install helm' },
+  { system: 'Terraform',  cmd: 'terraform', version: ['version'],
+    install: 'winget install Hashicorp.Terraform   |   brew install terraform' },
+  { system: 'AWS',        cmd: 'aws',       version: ['--version'],
+    auth: ['sts', 'get-caller-identity', '--query', 'Account', '--output', 'text'],
+    authOk: /^\d{12}$/m,
+    install: 'winget install Amazon.AWSCLI   |   brew install awscli' },
+];
+
+function tools() {
+  console.log('');
+  console.log(bold('  Tool availability'));
+  console.log(dim('  Which access paths this machine can actually use.'));
+  console.log('');
+
+  const missing = [];
+  const unauth = [];
+
+  for (const t of TOOLCHAIN) {
+    const v = spawnSync(t.cmd, t.version, { encoding: 'utf8' });
+    if (v.status !== 0 && !v.stdout) {
+      console.log(`  ${red('✗')} ${bold(t.system.padEnd(11))} ${dim('not installed')}`);
+      missing.push(t);
+      continue;
+    }
+    const ver = ((v.stdout || v.stderr || '').trim().split('\n')[0] || '').slice(0, 34);
+
+    let state = dim('— ');
+    if (t.auth) {
+      const a = spawnSync(t.cmd, t.auth, { encoding: 'utf8' });
+      const out = (a.stdout || '') + (a.stderr || '');
+      if (a.status === 0 && t.authOk.test(out.trim())) {
+        const detail = (out.trim().split('\n')[0] || '').slice(0, 30);
+        state = green('authenticated') + dim('  ' + detail);
+      } else {
+        state = yellow('NOT configured');
+        unauth.push(t);
+      }
+    }
+    console.log(`  ${green('✓')} ${bold(t.system.padEnd(11))} ${dim(ver.padEnd(36))} ${state}`);
+  }
+
+  console.log('');
+  if (missing.length) {
+    console.log(bold('  Missing — install to enable that access path'));
+    console.log(dim('    (just installed something? PATH is read at shell start —'));
+    console.log(dim('     open a new terminal and re-run before trusting this)'));
+    for (const t of missing) {
+      console.log(`    ${t.system}: ${dim(t.install || 'see vendor docs')}`);
+    }
+    console.log('');
+  }
+  if (unauth.length) {
+    console.log(bold('  Installed but not configured'));
+    for (const t of unauth) {
+      const hint = {
+        AWS: 'aws configure sso   then   aws sso login',
+        GitHub: 'gh auth login',
+        Kubernetes: 'set a kubeconfig context (use a read-only ServiceAccount)',
+        Docker: 'start Docker Desktop / the daemon',
+      }[t.system];
+      console.log(`    ${t.system}: ${dim(hint || 'see vendor docs')}`);
+    }
+    console.log('');
+  }
+
+  // MCP is the second access path — report it too.
+  const mcpPath = path.join(process.cwd(), '.mcp.json');
+  console.log(bold('  MCP servers'));
+  if (fs.existsSync(mcpPath)) {
+    try {
+      const m = JSON.parse(fs.readFileSync(mcpPath, 'utf8'));
+      const names = Object.keys(m.mcpServers || {});
+      if (names.length) ok(`.mcp.json — ${names.length} configured: ${names.join(', ')}`);
+      else warn('.mcp.json exists but defines no servers');
+    } catch (e) {
+      fail(`.mcp.json is not valid JSON — ${e.message}`);
+    }
+  } else {
+    skip('no .mcp.json — CLI is the only access path (usually fine)');
+    console.log(dim('      Start from .mcp.json.example if you need one.'));
+  }
+
+  console.log('');
+  console.log(dim('  Read .claude/tools/README.md for the CLI-vs-MCP decision and'));
+  console.log(dim('  the per-system read/write/destructive capability matrix.'));
+  console.log('');
+}
+
 function help() {
   console.log(`
   ${bold('claude-devops-architect')} ${dim('v' + pkg.version)}
@@ -271,6 +374,7 @@ function help() {
   ${bold('Usage')}
     npx claude-devops-architect init [dir]     install into a project (default: .)
     npx claude-devops-architect doctor         verify the install and guardrails
+    npx claude-devops-architect tools          which CLIs / MCP servers are usable
     npx claude-devops-architect --version
     npx claude-devops-architect --help
 
@@ -288,6 +392,7 @@ function help() {
     .claude/templates    architecture, deployment plan, CI/CD, readiness checklist
     .claude/mcp          MCP integration policy (no server enabled by default)
     .claude/hooks        safety hooks — block destructive commands before they run
+    .claude/tools        tool-selection: CLI vs MCP, capability matrix
     .claude/settings.json  155 read-only allowlist rules, zero mutating commands
 
   ${bold('Safety')}
@@ -308,6 +413,7 @@ if (!cmd || cmd === '--help' || cmd === '-h' || cmd === 'help') help();
 else if (cmd === '--version' || cmd === '-v') console.log(pkg.version);
 else if (cmd === 'init') init(argv);
 else if (cmd === 'doctor') doctor(argv);
+else if (cmd === 'tools') tools(argv);
 else {
   console.error(`\n  ${red('Unknown command:')} ${cmd}\n  Run --help for usage.\n`);
   process.exit(1);

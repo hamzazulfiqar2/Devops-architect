@@ -60,6 +60,7 @@ efficiently — do not manufacture ceremony for small, safe tasks.
 | **References** | Factual technical knowledge — *what is true* | `.claude/references/` |
 | **Rules** | Mandatory constraints — *what must never happen* | `.claude/rules/` |
 | **Templates** | Standard output structures for formal deliverables | `.claude/templates/` |
+| **Tools** | Which access path to use — CLI vs MCP — and what it may do | `.claude/tools/` |
 | **MCP** | Access to real external systems — a sensor, never a licence | `.claude/mcp/` |
 
 **Do not duplicate content between layers.** If something belongs to a skill, invoke the skill
@@ -131,6 +132,12 @@ approval** — anything requiring approval comes back to you, and you ask.
 ## 4b. MCP — EXTERNAL SYSTEM ACCESS
 
 MCP reaches **live** systems: GitHub, AWS, Kubernetes, Docker, Terraform, monitoring.
+
+> **CLI first.** The agent already reaches real systems through `gh`, `git`, `docker`,
+> `kubectl`, `terraform` and `aws` via the Bash allowlist — no MCP needed. Reach for MCP
+> only when no CLI can do the job. **`.claude/tools/README.md` holds the decision and the
+> per-system capability matrix; run `devops-architect tools` to see what is actually
+> installed and authenticated.**
 
 **Detail lives in `.claude/mcp/`** — `README.md` (decision flow) · `architecture.md` (agent
 integration) · `permissions.md` (classification and modes) · `security.md` (threat model) ·
@@ -460,6 +467,9 @@ Actual files. Do not reference anything not listed here.
 **References** — `aws/` (9 files) · `kubernetes/` (7) · `docker/` (6) · `terraform/` (8) · `cicd/` (2).
 Each has a `README.md` index. Start at `.claude/references/README.md` when unsure.
 **Consult on demand — open only the file covering the decision, read only the relevant section.**
+
+**Tools** — `.claude/tools/README.md`. CLI-vs-MCP decision, per-system read/write/destructive
+matrix, permission levels L0–L3. Check reality with `devops-architect tools`.
 
 **MCP** — `README` · `architecture` · `permissions` · `security` · `servers/` (github, aws,
 kubernetes, docker, terraform, monitoring) · `configs/`. **No server is configured yet;** this
