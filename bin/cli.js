@@ -172,6 +172,184 @@ function init(argv) {
   console.log('');
 }
 
+// ── global (compact, on-demand) install ────────────────────────────────────
+// Installs at user level (~/.claude) so the agent is available in every project, but loads
+// almost nothing until the user says "guide me". Full layers live in ~/.claude/devops-architect/
+// and are opened on demand; a per-project brief (.claude/devops-context.md) replaces re-discovery.
+const GLOBAL_LAYER_DIRS = ['skills', 'workflows', 'templates', 'references', 'rules', 'mcp', 'tools'];
+const AGENT_SHORT_DESCRIPTIONS = {
+  'aws-architect': 'AWS architecture design and service comparison. Design only.',
+  'kubernetes-engineer': 'Kubernetes manifests, design, review, troubleshooting.',
+  'security-reviewer': 'read-only DevOps/cloud security review with severity-rated findings.',
+  'terraform-engineer': 'Terraform code, modules, state, plan review. Never applies.',
+};
+
+function copyTree(srcDir, destDir, dryRun, written) {
+  for (const file of walk(srcDir)) {
+    const dest = path.join(destDir, file);
+    if (!dryRun) {
+      fs.mkdirSync(path.dirname(dest), { recursive: true });
+      fs.copyFileSync(path.join(srcDir, file), dest);
+    }
+    written.push(dest);
+  }
+}
+
+function findPythonCmd() {
+  for (const cmd of ['python3', 'python']) {
+    const r = spawnSync(cmd, ['--version'], { encoding: 'utf8' });
+    if (r.status === 0) return cmd;
+  }
+  return null;
+}
+
+function globalInstall(argv) {
+  const dryRun = argv.includes('--dry-run');
+  const homeIdx = argv.indexOf('--home');
+  const home = homeIdx !== -1 && argv[homeIdx + 1] ? path.resolve(argv[homeIdx + 1]) : require('os').homedir();
+  const claudeDir = path.join(home, '.claude');
+  const daHome = path.join(claudeDir, 'devops-architect');
+  const fwd = (p) => p.split(path.sep).join('/');
+
+  console.log('');
+  console.log(bold(`  claude-devops-architect v${pkg.version} — global compact install`));
+  console.log(dim(`  installing into ${claudeDir}`));
+  if (dryRun) console.log(yellow('  DRY RUN — nothing will be written'));
+  console.log('');
+
+  const py = findPythonCmd();
+  if (!py) warn('python NOT found — hooks will be wired but cannot run (they fail open).');
+
+  const written = [];
+
+  // 1. Full layers → ~/.claude/devops-architect/ (Claude Code does not auto-load this folder).
+  for (const d of GLOBAL_LAYER_DIRS) copyTree(path.join(PKG_ROOT, '.claude', d), path.join(daHome, d), dryRun, written);
+  for (const f of DECISION_FILES) {
+    const dest = path.join(daHome, 'decisions-template', path.basename(f));
+    if (!dryRun) {
+      fs.mkdirSync(path.dirname(dest), { recursive: true });
+      fs.copyFileSync(path.join(PKG_ROOT, f), dest);
+    }
+    written.push(dest);
+  }
+  const orchestrator = path.join(daHome, 'ORCHESTRATOR.md');
+  if (!dryRun) fs.copyFileSync(path.join(PKG_ROOT, 'CLAUDE.md'), orchestrator);
+  written.push(orchestrator);
+
+  // 2. Compact core + guide-me skill (the only thing listed in every chat).
+  const compactFiles = [
+    ['compact/CORE.md', path.join(daHome, 'CORE.md')],
+    ['compact/RULES-DIGEST.md', path.join(daHome, 'RULES-DIGEST.md')],
+    ['compact/guide-me/SKILL.md', path.join(claudeDir, 'skills', 'guide-me', 'SKILL.md')],
+  ];
+  for (const [src, dest] of compactFiles) {
+    const body = fs.readFileSync(path.join(PKG_ROOT, src), 'utf8').split('{{DA_HOME}}').join(fwd(daHome));
+    if (!dryRun) {
+      fs.mkdirSync(path.dirname(dest), { recursive: true });
+      fs.writeFileSync(dest, body);
+    }
+    written.push(dest);
+  }
+
+  // 3. Agents and hooks stay where Claude Code discovers them.
+  const agentsDir = path.join(claudeDir, 'agents');
+  const hooksDir = path.join(claudeDir, 'hooks');
+  const agentFiles = fs.readdirSync(path.join(PKG_ROOT, '.claude/agents')).filter((f) => f.endsWith('.md'));
+  copyTree(path.join(PKG_ROOT, '.claude/agents'), agentsDir, dryRun, written);
+  copyTree(path.join(PKG_ROOT, '.claude/hooks'), hooksDir, dryRun, written);
+
+  if (dryRun) {
+    ok(`would write ${written.length} files`);
+    console.log('');
+    return;
+  }
+
+  // 4. Rewrite project-relative paths to absolute ones.
+  const layerRe = new RegExp(`(^|[^\\w/~])\\.claude/(${GLOBAL_LAYER_DIRS.join('|')})/`, 'g');
+  const rewriteTargets = [
+    ...walk(daHome).filter((f) => f.endsWith('.md')).map((f) => path.join(daHome, f)),
+    ...agentFiles.map((f) => path.join(agentsDir, f)),
+  ];
+  for (const file of rewriteTargets) {
+    let t = fs.readFileSync(file, 'utf8');
+    t = t
+      .replace(layerRe, (_, pre, d) => `${pre}${fwd(daHome)}/${d}/`)
+      .replace(/(^|[^\w/~])\.claude\/(agents|hooks)\//g, (_, pre, d) => `${pre}${fwd(claudeDir)}/${d}/`)
+      .replace(/(^|[^\w/])decisions\/0000-template\.md/g, (_, pre) => `${pre}${fwd(daHome)}/decisions-template/0000-template.md`);
+    fs.writeFileSync(file, t);
+  }
+
+  // 5. Agents: skills are files now, not registered skills; one-line descriptions keep every chat cheap.
+  for (const f of agentFiles) {
+    const file = path.join(agentsDir, f);
+    let t = fs.readFileSync(file, 'utf8');
+    const name = (t.match(/^name:\s*(.+)$/m) || [])[1];
+    const short = name && AGENT_SHORT_DESCRIPTIONS[name.trim()];
+    if (short) {
+      t = t.replace(/^description:.*$/m,
+        `description: DevOps Architect specialist — ${short} Use when the DevOps Architect (guide-me) delegates.`);
+    }
+    t = t.replace(/(\*\*)?[Ii]nvoke the `([a-z-]+)` skill(\*\*)?/g,
+      (_, b1, skill, b2) => `${b1 || ''}Read \`${fwd(daHome)}/skills/${skill}/SKILL.md\`${b2 || ''}`);
+    fs.writeFileSync(file, t);
+  }
+
+  // 6. Merge permissions + hooks into ~/.claude/settings.json, keeping the user's own settings.
+  const settingsPath = path.join(claudeDir, 'settings.json');
+  const src = JSON.parse(fs.readFileSync(path.join(PKG_ROOT, '.claude/settings.json'), 'utf8'));
+  let dest = {};
+  if (fs.existsSync(settingsPath)) {
+    fs.copyFileSync(settingsPath, `${settingsPath}.bak`);
+    dest = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+  }
+  const perms = (dest.permissions = dest.permissions || {});
+  for (const key of ['allow', 'deny', 'ask']) {
+    const merged = [...new Set([...(perms[key] || []), ...((src.permissions || {})[key] || [])])];
+    if (merged.length) perms[key] = merged;
+  }
+  const OURS = ['block_destructive.py', 'scan_secrets.py'];
+  dest.hooks = dest.hooks || {};
+  for (const [event, groups] of Object.entries(src.hooks || {})) {
+    const existing = (dest.hooks[event] || []).filter(
+      (g) => !(g.hooks || []).some((h) => OURS.some((n) => (h.command || '').includes(n)))
+    );
+    for (const g of JSON.parse(JSON.stringify(groups))) {
+      for (const h of g.hooks || []) {
+        const hook = OURS.find((n) => (h.command || '').includes(n));
+        if (hook) h.command = `"${py || 'python'}" "${fwd(path.join(hooksDir, hook))}"`;
+      }
+      existing.push(g);
+    }
+    dest.hooks[event] = existing;
+  }
+  fs.writeFileSync(settingsPath, JSON.stringify(dest, null, 2) + '\n');
+
+  ok(`${written.length} files written`);
+  ok(`settings.json merged — ${(perms.allow || []).length} allow, ${(perms.deny || []).length} deny, hooks wired to ${py || 'python'}`);
+
+  // 7. Anything that would still load in every chat defeats the point.
+  if (fs.existsSync(path.join(claudeDir, 'CLAUDE.md'))) warn('~/.claude/CLAUDE.md exists — it loads in every chat');
+  const rulesDir = path.join(claudeDir, 'rules');
+  if (fs.existsSync(rulesDir) && fs.readdirSync(rulesDir).length) warn('~/.claude/rules/ is not empty — it loads in every chat');
+  const oldSkills = fs.existsSync(path.join(claudeDir, 'skills'))
+    ? fs.readdirSync(path.join(PKG_ROOT, '.claude/skills')).filter((s) => fs.existsSync(path.join(claudeDir, 'skills', s)))
+    : [];
+  if (oldSkills.length) warn(`old always-listed skills still in ~/.claude/skills: ${oldSkills.join(', ')}`);
+
+  if (py) {
+    const r = spawnSync(py, [path.join(hooksDir, 'test_hooks.py')], { encoding: 'utf8' });
+    const out = (r.stdout || '').trim().split('\n').pop() || '';
+    if (r.status === 0) ok(`hook regression suite: ${out}`);
+    else fail(`hook regression suite FAILED: ${out}`);
+  }
+
+  console.log('');
+  console.log(bold('  Next'));
+  console.log(`    Open a new Claude Code chat in any project and type ${cyan('guide me')}.`);
+  console.log(dim('    The first run in a project writes .claude/devops-context.md; later runs reuse it.'));
+  console.log('');
+}
+
 function findPython() {
   for (const cmd of ['python', 'python3']) {
     const r = spawnSync(cmd, ['--version'], { encoding: 'utf8' });
@@ -241,7 +419,7 @@ function doctor(argv) {
     ok(`python present (${py})`);
     const suite = path.join(root, '.claude/hooks/test_hooks.py');
     if (fs.existsSync(suite)) {
-      const cmd = spawnSync('python', [suite], { encoding: 'utf8' });
+      const cmd = spawnSync(findPythonCmd() || 'python', [suite], { encoding: 'utf8' });
       const out = (cmd.stdout || '').trim().split('\n').pop() || '';
       if (cmd.status === 0) ok(`hook regression suite: ${out}`);
       else {
@@ -373,10 +551,15 @@ function help() {
 
   ${bold('Usage')}
     npx claude-devops-architect init [dir]     install into a project (default: .)
+    npx claude-devops-architect global         install for every project, compact and on-demand
     npx claude-devops-architect doctor         verify the install and guardrails
     npx claude-devops-architect tools          which CLIs / MCP servers are usable
     npx claude-devops-architect --version
     npx claude-devops-architect --help
+
+  ${bold('global options')}
+    --dry-run    show what would happen, write nothing
+    --home DIR   install under DIR/.claude instead of your home folder
 
   ${bold('init options')}
     --force      overwrite files that already exist
@@ -412,6 +595,7 @@ const cmd = argv[0];
 if (!cmd || cmd === '--help' || cmd === '-h' || cmd === 'help') help();
 else if (cmd === '--version' || cmd === '-v') console.log(pkg.version);
 else if (cmd === 'init') init(argv);
+else if (cmd === 'global') globalInstall(argv);
 else if (cmd === 'doctor') doctor(argv);
 else if (cmd === 'tools') tools(argv);
 else {

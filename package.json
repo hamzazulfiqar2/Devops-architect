@@ -1,7 +1,7 @@
 {
   "name": "claude-devops-architect",
   "version": "0.1.0",
-  "description": "A senior DevOps / AWS architect and mentor for Claude Code \u2014 skills, workflows, guardrails and safety hooks that stop destructive infrastructure commands before they run.",
+  "description": "A senior DevOps / AWS architect and mentor for Claude Code — skills, workflows, guardrails and safety hooks that stop destructive infrastructure commands before they run.",
   "keywords": [
     "claude",
     "claude-code",
@@ -33,6 +33,7 @@
   "files": [
     "bin/",
     ".claude/",
+    "compact/",
     "decisions/",
     "CLAUDE.md",
     "README.md",
