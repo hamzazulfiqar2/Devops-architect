@@ -54,6 +54,39 @@ Then open the project in Claude Code and ask it to `analyze this project`.
 
 Already have a `CLAUDE.md`? It won't be overwritten — you'll get `CLAUDE.devops-architect.md` to merge by hand. Re-running `init` is safe: it skips anything that already exists.
 
+## Use it in every project — compact mode
+
+`init` installs into one project and loads ~18k tokens of instructions in every session there.
+`global` installs once for **every** project and loads almost nothing until you ask for it:
+
+```bash
+node Devops-architect/bin/cli.js global            # installs into ~/.claude
+node Devops-architect/bin/cli.js global --dry-run  # preview
+```
+
+Then, in any project, open a new Claude Code chat and type **`guide me`** (or `/guide-me`).
+
+| | Per-project `init` | `global` (compact) |
+|---|---|---|
+| Normal chats, not asking for guidance | ~16k tokens | **~230 tokens** (skill + agent one-liners) |
+| When guidance is activated | full CLAUDE.md + rules | **~3k tokens** — `CORE.md` + `RULES-DIGEST.md` |
+| Re-reading the project | every session | **once** — then reuses a project brief |
+| Safety hooks | this project | **every project** |
+
+**How it stays small**
+
+- Full rules, skills, workflows and references live in `~/.claude/devops-architect/` — a folder Claude
+  Code does not auto-load. The agent opens a file only when a task needs it.
+- The first `guide me` in a project runs discovery and writes a ≤150-line brief to
+  `.claude/devops-context.md` — stack, architecture and flow, config, infra, CI/CD, key files,
+  UNKNOWNs, risks, decisions. Never secret values.
+- Later sessions read the brief and check `git log` since its synced commit. No relevant change →
+  no re-scan. Relevant change → only those files are re-read and the brief is updated.
+- The four subagents stay registered, with their tool restrictions, and read skill files by path.
+
+Re-run `global` after `git pull` to update. Your other `~/.claude/settings.json` settings are kept
+(a `.bak` is written first). The compact sources are in [`compact/`](compact/).
+
 ## Verify it works
 
 ```bash

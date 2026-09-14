@@ -66,6 +66,17 @@ jobs:
           cd /tmp/consumer
           node "$GITHUB_WORKSPACE/bin/cli.js" doctor
 
+      - name: Global compact install into a clean home and verify
+        run: |
+          mkdir -p /tmp/home
+          node bin/cli.js global --home /tmp/home
+          test -f /tmp/home/.claude/skills/guide-me/SKILL.md
+          test -f /tmp/home/.claude/devops-architect/CORE.md
+          test ! -e /tmp/home/.claude/rules
+          test ! -e /tmp/home/.claude/CLAUDE.md
+          ! grep -rn '{{DA_HOME}}' /tmp/home/.claude
+          ! ls /tmp/home/.claude/skills | grep -vx guide-me
+
       - name: Verify tarball contents
         run: |
           npm pack --dry-run
